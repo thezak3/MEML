@@ -3,6 +3,57 @@ import pandas as pd
 import numpy as np
 import pickle
 import plotly.graph_objects as go
+import torch
+import torch.nn as nn
+import warnings
+
+# Suppress version warnings
+warnings.filterwarnings('ignore', category=UserWarning)
+warnings.filterwarnings('ignore', category=FutureWarning)
+import os
+os.environ['PYTHONWARNINGS'] = 'ignore'
+
+# ============= ANN MODEL WRAPPER CLASS =============
+# This class must be defined before loading the ANN model
+class PavementANN(nn.Module):
+    """ANN architecture for pavement cracking prediction"""
+    def __init__(self, input_size, hidden_sizes, dropout_rate=0.2):
+        super(PavementANN, self).__init__()
+        
+        layers = []
+        prev_size = input_size
+        
+        for hidden_size in hidden_sizes:
+            layers.append(nn.Linear(prev_size, hidden_size))
+            layers.append(nn.ReLU())
+            layers.append(nn.Dropout(dropout_rate))
+            prev_size = hidden_size
+        
+        # Output layer
+        layers.append(nn.Linear(prev_size, 1))
+        
+        self.network = nn.Sequential(*layers)
+    
+    def forward(self, x):
+        return self.network(x)
+
+class ANNModelWrapper:
+    """Wrapper to make PyTorch model pickle-compatible"""
+    def __init__(self, model, input_size, hidden_sizes, dropout_rate, device='cpu'):
+        self.model = model
+        self.input_size = input_size
+        self.hidden_sizes = hidden_sizes
+        self.dropout_rate = dropout_rate
+        self.device = device
+        self.model.to(device)
+        self.model.eval()
+    
+    def predict(self, X):
+        """Predict method compatible with sklearn-style interface"""
+        with torch.no_grad():
+            X_tensor = torch.FloatTensor(X).to(self.device)
+            predictions = self.model(X_tensor).cpu().numpy().flatten()
+        return predictions
 
 # Page configuration
 st.set_page_config(
