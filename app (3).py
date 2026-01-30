@@ -145,7 +145,7 @@ def predict_cracking_with_monotonicity(inputs_dict, scaler, xgb_model, lgb_model
         year_inputs['Pavement_Age_Months'] = year_months
         year_inputs['Cumulative_Monthly_ESALs'] = year_esals
         
-        # Create feature dataframe
+        # Create feature dataframe with exact column order from training
         df_input = pd.DataFrame([year_inputs])
         
         # Add polynomial and interaction features
@@ -160,6 +160,17 @@ def predict_cracking_with_monotonicity(inputs_dict, scaler, xgb_model, lgb_model
         df_input['Paris_Age'] = df_input['A'] * (df_input['Pavement_Age_Months'] ** df_input['n'])
         df_input['Paris_Combined'] = df_input['A'] * ((df_input['Cumulative_Monthly_ESALs'] + df_input['Pavement_Age_Months']) ** df_input['n'])
         df_input['Paris_Modulus_ESALs'] = (df_input['A'] / (df_input['AC_Modulus_ksi'] + 1)) * (df_input['Cumulative_Monthly_ESALs'] ** df_input['n'])
+        
+        # Ensure columns are in exact training order
+        feature_order = [
+            'Pavement_Age_Months', 'Cumulative_Monthly_ESALs', 'AC_Thickness',
+            'RAP_Percent', 'A', 'n', 'AC_Modulus_ksi', 'Base_Thickness',
+            'Base_Modulus', 'Subgrade_Modulus',
+            'Age_Squared', 'ESALs_Squared', 'Age_x_ESALs',
+            'AC_Thickness_x_Modulus', 'Base_Thickness_x_Modulus',
+            'Paris_ESALs', 'Paris_Age', 'Paris_Combined', 'Paris_Modulus_ESALs'
+        ]
+        df_input = df_input[feature_order]
         
         # Scale features
         X_scaled = scaler.transform(df_input)
